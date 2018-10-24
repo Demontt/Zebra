@@ -1,0 +1,190 @@
+(1)在zebra(数据库实例)中创建对应表
+	使用zebra项目中创建的表f_http_app_host
+
+(2)通过sqoop导出数据到该表中（在sqoop/bin目录下执行）
+[root@hadoop01 bin]# ./sqoop export --connect
+jdbc:mysql://pluscpp.com:3306/zebra --username zebra --password root
+--export-dir '/zb/result' --table F_HTTP_APP_HOST -m 1 --fields-terminated-by '|'
+
+===================================================================
+#创建数据库
+create database zebra;
+use zebra;
+#创建数据总表
+create table F_HTTP_APP_HOST(
+	reporttime datetime,
+	apptype int,
+	appsubtype int,
+	userip varchar(20),
+	userport int,
+	appserverip varchar(20),
+	appserverport int,
+	host varchar(255),
+	cellid varchar(20),
+	attempts bigint,
+	accepts bigint,
+	trafficul bigint,
+	trafficdl bigint,
+	retranul bigint,
+	retrandl bigint,
+	failcount bigint,
+	transdelay bigint
+);
+
+#创建应用欢迎度表
+create table D_H_HTTP_APPTYPE(
+	hourid datetime,
+	apptype int,
+	appsubtype int,
+	attempts bigint,
+	accepts bigint,
+	succratio bigint,
+	trafficul bigint,
+	trafficdl bigint,
+	totaltraffic bigint,
+	retranul bigint,
+	retrandl bigint,
+	retrantraffic bigint,
+	failcount bigint,
+	transdelay bigint
+);
+
+#创建各网站表现表
+create table D_H_HTTP_HOST(
+	hourid datetime,
+	host varchar(255),
+	appserverip varchar(20),
+	attempts bigint,
+	accepts bigint,
+	succratio bigint,
+	trafficul bigint,
+	trafficdl bigint,
+	totaltraffic bigint,
+	retranul bigint,
+	retrandl bigint,
+	retrantraffic bigint,
+	failcount bigint,
+	transdelay bigint
+);
+
+#创建小区HTTP上网能力表
+create table D_H_HTTP_CELLID(
+	hourid datetime,
+	cellid varchar(20),
+	attempts bigint,
+	accepts bigint,
+	succratio bigint,
+	trafficul bigint,
+	trafficdl bigint,
+	totaltraffic bigint,
+	retranul bigint,
+	retrandl bigint,
+	retrantraffic bigint,
+	failcount bigint,
+	transdelay bigint
+);
+
+#创建小区上网喜好表
+create table D_H_HTTP_CELLID_HOST(
+	hourid datetime,
+	cellid varchar(20),
+	host varchar(255),
+	attempts bigint,
+	accepts bigint,
+	succratio bigint,
+	trafficul bigint,
+	trafficdl bigint,
+	totaltraffic bigint,
+	retranul bigint,
+	retrandl bigint,
+	retrantraffic bigint,
+	failcount bigint,
+	transdelay bigint
+);
+===================================================================
+insert into D_H_HTTP_APPTYPE
+	select
+		reporttime as hourid,
+		apptype,
+		appsubtype,
+		sum(attempts) as attempts,
+		sum(accepts) as accepts,
+		sum(accepts)/sum(attempts) as succRatio,
+		sum(trafficul) as trafficul,
+		sum(trafficdl) as trafficdl,
+		sum(trafficul)+sum(trafficdl) as totaltraffic,
+		sum(retranul) as retranul,
+		sum(retrandl) as retrandl,
+		sum(retranul)+sum(retrandl) as retrantraffic,
+		sum(failcount) as failcount,
+		sum(transdelay) as transdelay
+	from
+		F_HTTP_APP_HOST
+	group by
+		reporttime,apptype,appsubtype
+;
+
+insert into D_H_HTTP_HOST
+	select
+		reporttime as hourid,
+		host,
+		appserverip,
+		sum(attempts) as attempts,
+		sum(accepts) as accepts,
+		sum(accepts)/sum(attempts) as succRatio,
+		sum(trafficul) as trafficul,
+		sum(trafficdl) as trafficdl,
+		sum(trafficul)+sum(trafficdl) as totaltraffic,
+		sum(retranul) as retranul,
+		sum(retrandl) as retrandl,
+		sum(retranul)+sum(retrandl) as retrantraffic,
+		sum(failcount) as failcount,
+		sum(transdelay) as transdelay
+	from
+		F_HTTP_APP_HOST
+	group by
+		reporttime,host,appserverip
+;
+
+insert into D_H_HTTP_CELLID
+	select
+		reporttime as hourid,
+		cellid,
+		sum(attempts) as attempts,
+		sum(accepts) as accepts,
+		sum(accepts)/sum(attempts) as succRatio,
+		sum(trafficul) as trafficul,
+		sum(trafficdl) as trafficdl,
+		sum(trafficul)+sum(trafficdl) as totaltraffic,
+		sum(retranul) as retranul,
+		sum(retrandl) as retrandl,
+		sum(retranul)+sum(retrandl) as retrantraffic,
+		sum(failcount) as failcount,
+		sum(transdelay) as transdelay
+	from
+		F_HTTP_APP_HOST
+	group by
+		reporttime,cellid
+;
+
+insert into D_H_HTTP_CELLID_HOST
+	select
+		reporttime as hourid,
+		cellid,
+		host,
+		sum(attempts) as attempts,
+		sum(accepts) as accepts,
+		sum(accepts)/sum(attempts) as succRatio,
+		sum(trafficul) as trafficul,
+		sum(trafficdl) as trafficdl,
+		sum(trafficul)+sum(trafficdl) as totaltraffic,
+		sum(retranul) as retranul,
+		sum(retrandl) as retrandl,
+		sum(retranul)+sum(retrandl) as retrantraffic,
+		sum(failcount) as failcount,
+		sum(transdelay) as transdelay
+	from
+		F_HTTP_APP_HOST
+	group by
+		reporttime,cellid,host
+;
